@@ -46,101 +46,65 @@ exports.ownershipRequired = function(req, res, next){
 // GET /quizzes
 exports.index = function(req, res, next) {
 
-    var options = {};
-    var title = "Preguntas";
-
-    // Solo los Quizzes de un autor.
-    if (req.user) {
-        options.where = {AuthorId: req.user.id};
-        title = "Mis Preguntas";
-    }
-
-    models.Quiz.count(options)
-    .then(function(count) {
-
-        options.include = [ models.Attachment ];
-
-        // Para usuarios logeados: incluir los fans de las preguntas.
-        if (req.session.user) {
-            options.include.push({ model: models.User, as: 'Fans' });
-        }
-
-        // Paginacion:
-
-        var items_per_page = 6;
-
-        // La pagina a mostrar viene en la query
-        var pageno = parseInt(req.query.pageno) || 1;
-
-        // Datos para obtener el rango de datos a buscar en la BBDD.
-        var pagination = {
-            offset: items_per_page * (pageno - 1),
-            limit: items_per_page
-        };
-
-        // Crear un string con el HTML que pinta la botonera de paginacion.
-        // Lo añado como una variable local de res para que lo pinte el layout de la aplicacion.
-        res.locals.paginate_control = paginate(count, items_per_page, pageno, req.url);
-
-        return pagination;
+     if(req.query.search){
+    var search = req.query.search.split(' ');
+     search = '%' + search.join('%') + '%';
+     models.Quiz.findAll({where: ['question like ?', search], include: [ models.Attachment ] })
+    .then(function(quizzes) {
+      res.render('quizzes/index.ejs', { quizzes: quizzes});
     })
-    .then(function(pagination) {
-
-        options.offset = pagination.offset;
-        options.limit  = pagination.limit;
-
-        return models.Quiz.findAll(options);
+    .catch(function(error) {
+      next(error);
+    });
+  }
+  
+  if(req.params.format=== 'json') {
+    models.Quiz.findAll()
+    .then(function(quizzes){
+      res.json('quizzes/index.ejs',{ quizzes:quizzes});
     })
-	.then(function(quizzes) {
-
-        // Para usuarios logeados:
-        //   Añado a todos los quizzes un atributo booleano llamado "favourite"
-        //   que indica si el quiz es uno de mis favoritos o no. 
-        if (req.session.user) {
-
-            quizzes.forEach(function(quiz) {
-                quiz.favourite = quiz.Fans.some(function(fan) {
-                    return fan.id == req.session.user.id;
-                });
-            });
-        } 
-
-		res.render('quizzes/index.ejs', {quizzes: quizzes,
-                                         title: title});
-	})
-	.catch(function(error) {
-		next(error);
-	});
+    .catch(function(error){
+      next(error);
+    });
+  }
+  
+  else {
+    models.Quiz.findAll()
+    .then(function(quizzes){
+      res.render('quizzes/index.ejs',{quizzes:quizzes});
+    })
+    .catch(function(error){
+      next(error);
+    });
+  }
 };
 
 
 // GET /quizzes/:quizId
 exports.show = function(req, res, next) {
 
-	var answer = req.query.answer || '';
-
-    // Para usuarios logeados:
-    //   Si el quiz es uno de mis favoritos, creo un atributo llamado
-    //   "favourite" con el valor true.
-    if (req.session.user) {
-
-        req.quiz.getFans({where: {id: req.session.user.id}})
-            .then(function(fans) {
-                if (fans.length > 0) {
-                    req.quiz.favourite = true
-                }      
-            })
-            .then(function() {
-                res.render('quizzes/show', { quiz: req.quiz,
-                                             answer: answer});
-            })
-            .catch(function(error){
-                next(error);
-            });
-    } else {
-        res.render('quizzes/show', {quiz: req.quiz,
-                                    answer: answer});
-    }
+	 if(req.params.format=== 'json') {
+    models.Quiz.findById(req.params.quizId)
+    .then(function(quiz){
+      if(quiz){
+        var answer = req.query.answer || '';
+        res.json('quizzes/show.ejs',{ quiz: req.quiz, answer: answer});
+      }})
+    .catch(function(error){
+      next(error);
+    });
+  }
+  else {
+    models.Quiz.findById(req.params.quizId)
+    .then(function(quiz){
+      if(quiz){
+        var answer = req.query.answer || '';
+        res.render('quizzes/show.ejs',{quiz: req.quiz, answer: answer});
+    }})
+    .catch(function(error){
+      next(error);
+    });
+  }
 };
 
 

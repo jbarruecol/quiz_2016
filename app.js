@@ -10,6 +10,7 @@ var flash = require('express-flash');
 var methodOverride = require('method-override');
 
 var routes = require('./routes/index');
+var sessionController=require('./controllers/Session_controller');
 
 var app = express();
 
@@ -42,6 +43,7 @@ app.use(session({secret: "Quiz 2016",
                  saveUninitialized: true}));
 app.use(methodOverride('_method', {methods: ["POST", "GET"]}));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/', sessionController.comprobacion_tiempo);
 
 app.use(partials());
 app.use(flash());
