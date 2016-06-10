@@ -151,7 +151,7 @@ exports.comprobacion_tiempo = function(req, res, next) {
     } else {
         next();
     }
-}
+};
 
 
 // DELETE /session   -- Destruir sesion 
