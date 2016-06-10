@@ -16,6 +16,11 @@ router.get('/', function(req, res, next) {
   res.render('index');
 });
 
+//GET usuarios
+router.get('/mi_pagina', function(req,res,next){
+	res.render('mi_pagina');
+});
+
 
 // Autoload de parametros
 router.param('quizId', quizController.load);  // autoload :quizId
